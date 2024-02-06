@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "vkbot"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["vkbot:8000"]
+
+  - job_name: "database_data_metrics"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["database_data_metrics:8000"]
+
+  - job_name: node_exporter
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["node_exporter:9100"]
+
+  - job_name: "cadvisor"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["cadvisor:8080"]

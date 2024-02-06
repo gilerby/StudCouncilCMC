@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  vkbot:
+    build: ./vk_bot
+    container_name: vkbot
+    restart: unless-stopped
+    volumes:
+      - vkbot-storage:/.user_context
+      - ./:/code
+      - ./logs:/var/log/scbot
+    stop_signal: SIGINT
+    networks:
+      - my-network
+    env_file:
+      - .env
+
+  tgbot:
+    build: ./tg_bot
+    container_name: tgbot
+    restart: unless-stopped
+    volumes:
+      - ./:/code
+    stop_signal: SIGINT
+    networks:
+      - my-network
+    env_file:
+      - .env
+
+  database_data_metrics:
+    build: ./database_data_metrics
+    container_name: database_data_metrics
+    restart: unless-stopped
+    stop_signal: SIGINT
+    volumes:
+      - ./:/code
+    networks:
+      - my-network
+    env_file:
+      - .env
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    networks:
+      - my-network
+    pid: host
+    volumes:
+      - '/:/host:ro,rslave'
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - prometheus-storage:/prometheus
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/prometheus/web.yml:/etc/prometheus/web.yml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.config.file=/etc/prometheus/web.yml
+    ports:
+      - 9090:9090
+    networks:
+      - my-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    networks:
+      - 'my-network'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=rc1b-tvb119z50o9xtcef.mdb.yandexcloud.net:6432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=dAntu4-mazpup-pefsug
+      - GF_DATABASE_SSL_MODE=require
+      - GF_ANALYTICS_REPORT_PROTOCOL_COMMUNICATION_ENABLED=false
+      # - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      # - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana
+
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      - REDIS_PORT_NUMBER=7000
+      - REDIS_PASSWORD=fk7LvtQiqLbSwUe
+    ports:
+      - '7000:7000'
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    depends_on:
+      - prometheus
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    external: true
+    name: my-network
+
+volumes:
+  vkbot-storage: {}
+  grafana-storage: {}
+  prometheus-storage: {}
